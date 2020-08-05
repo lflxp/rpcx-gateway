@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	. "github.com/lflxp/rpcx-gateway"
+	. "github.com/rpcxio/rpcx-gateway"
 	"github.com/devopsxp/gateway/middlewares"
 	"github.com/gin-gonic/gin"
 )
