@@ -1,35 +1,41 @@
 package gin
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
+	. "gitee.com/lflxp/rpcx-gateway"
+	"github.com/devopsxp/gateway/middlewares"
 	"github.com/gin-gonic/gin"
-	. "github.com/rpcxio/rpcx-gateway"
 )
 
 type Server struct {
 	addr string
 	g    *gin.Engine
+	jwt  middlewares.JwtAuthorizator
 }
 
 // New returns a server.
-func New(addr string) *Server {
+func New(addr string, jwta middlewares.JwtAuthorizator) *Server {
 	return &Server{
 		addr: addr,
+		jwt:  jwta,
 	}
 }
 
 // NewWithGin returns a server with preconfigured gin.
-func NewWithGin(addr string, g *gin.Engine) *Server {
+func NewWithGin(addr string, g *gin.Engine, jwta middlewares.JwtAuthorizator) *Server {
 	return &Server{
 		addr: addr,
 		g:    g,
+		jwt:  jwta,
 	}
 }
 
 // RegisterHandler configures the handler to handle http rpcx invoke.
 // It wraps ServiceHandler into httprouter.Handle.
+// Add JwtAuthorizator support
 func (s *Server) RegisterHandler(base string, handler ServiceHandler) {
 	g := s.g
 	if g == nil {
@@ -37,9 +43,13 @@ func (s *Server) RegisterHandler(base string, handler ServiceHandler) {
 	}
 	h := wrapServiceHandler(handler)
 
-	g.POST(base, h)
-	g.GET(base, h)
-	g.PUT(base, h)
+	var jwtMiddleware = middlewares.NewGinJwtMiddlewares(s.jwt)
+	apiGroup := g.Group(base)
+	apiGroup.Use(jwtMiddleware.MiddlewareFunc())
+
+	apiGroup.POST("", h)
+	apiGroup.GET("", h)
+	apiGroup.PUT("", h)
 	s.g = g
 }
 
@@ -61,6 +71,12 @@ func wrapServiceHandler(handler ServiceHandler) gin.HandlerFunc {
 		wh := w.Header()
 		if messageID != "" {
 			wh.Set(XMessageID, messageID)
+		}
+
+		authorization := r.Header.Get("Authorization")
+		if authorization != "" {
+			log.Println("au", authorization)
+			wh.Set("Authorization", authorization)
 		}
 
 		meta, payload, err := handler(r, servicePath)
