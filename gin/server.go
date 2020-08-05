@@ -1,11 +1,10 @@
 package gin
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
-	. "github.com/rpcxio/rpcx-gateway"
+	. "github.com/lflxp/rpcx-gateway"
 	"github.com/devopsxp/gateway/middlewares"
 	"github.com/gin-gonic/gin"
 )
@@ -75,7 +74,6 @@ func wrapServiceHandler(handler ServiceHandler) gin.HandlerFunc {
 
 		authorization := r.Header.Get("Authorization")
 		if authorization != "" {
-			log.Println("au", authorization)
 			wh.Set("Authorization", authorization)
 		}
 
